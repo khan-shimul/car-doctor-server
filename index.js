@@ -22,9 +22,9 @@ const logger = async (req, res, next) => {
   next();
 };
 
-// Middleware - verify token
-const verifyToken = async (req, res, next) => {
-  const token = req.cookies?.token;
+// verify token middleware
+const verifyToken = async(req, res, next) => {
+  const token = req.cookies.token;
   if(!token){
     return res.status(401).send({message: 'Unauthorized Access'})
   }
@@ -36,6 +36,21 @@ const verifyToken = async (req, res, next) => {
     next()
   })
 }
+
+// Middleware - verify token
+// const verifyToken = async (req, res, next) => {
+//   const token = req.cookies?.token;
+//   if(!token){
+//     return res.status(401).send({message: 'Unauthorized Access'})
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+//     if(error){
+//       return res.status(401).send({message: 'Unauthorized Access'})
+//     }
+//     req.user = decoded
+//     next()
+//   })
+// }
 
 
 
@@ -60,7 +75,7 @@ async function run() {
     // Auth related api
     app.post('/jwt', async(req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
       res
       .cookie('token', token, {
         httpOnly: true,
@@ -68,10 +83,11 @@ async function run() {
         sameSite: 'strict'
       })
       .send({success: true})
-    });
+    })
+    
 
     // Services related api
-    app.get('/services', logger, async(req, res) => {
+    app.get('/services', async(req, res) => {
         const cursor = serviceCollection.find();
         const result = await cursor.toArray();
         res.send(result);
@@ -98,15 +114,15 @@ async function run() {
     });
 
     app.get('/booking', verifyToken, async(req, res) => {
-      if(req.query.email !== req.user.email){
+      if(req.user.email !== req.query.email){
         return res.status(403).send({message: 'Forbidden Access'})
       }
+
       let query = {};
       if(req.query?.email){
         query={email: req.query.email}
       }
       const result = await bookingCollection.find(query).toArray();
-      
       res.send(result)
     });
 
